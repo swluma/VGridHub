@@ -2,6 +2,9 @@ const gameSites = [
   "https://swluma.github.io/RiverBed"
 ];
 
+const HUB_SERVER_URL = "https://vgridhub.onrender.com";
+const HUB_WS_URL = HUB_SERVER_URL.replace(/^http:/, "ws:").replace(/^https:/, "wss:");
+
 const DEFAULT_GAME_META = {
   maxPlayers: 2,
   supportsLocal: true,
@@ -50,6 +53,8 @@ function buildGameUrl(baseUrl, mode, roomCode, playerName) {
   const url = new URL(baseUrl + "/");
   url.searchParams.set("hub", "1");
   url.searchParams.set("mode", mode);
+  url.searchParams.set("server", HUB_SERVER_URL);
+  url.searchParams.set("ws", HUB_WS_URL);
 
   if (playerName) {
     url.searchParams.set("name", playerName);
