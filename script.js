@@ -90,33 +90,33 @@ function createGameCard(game, baseUrl) {
   const actions = document.createElement("div");
   actions.className = "card-actions";
 
-  const localButton = createActionButton("ローカルで開く", () => {
+  const localButton = createActionButton("Open in Local Mode", () => {
     window.location.href = buildGameUrl(baseUrl, "local", "", playerNameInput.value.trim());
   }, true);
 
-  const roomButton = createActionButton("選択中の方法で開く", () => {
+  const roomButton = createActionButton("Open with Selected Mode", () => {
     const mode = playModeSelect.value;
     const playerName = playerNameInput.value.trim();
     const roomCode = normalizeRoomCode(roomCodeInput.value);
 
     if (!meta.supportsLocal && mode === "local") {
-      alert("このゲームはローカルプレイに対応していません。");
+      alert("This game does not support local play.");
       return;
     }
 
     if (!meta.supportsRooms && (mode === "host" || mode === "join")) {
-      alert("このゲームはルームプレイに対応していません。");
+      alert("This game does not support room play.");
       return;
     }
 
     if ((mode === "host" || mode === "join") && !roomCode) {
-      alert("ルームコードを入力してください。");
+      alert("Please enter a room code.");
       roomCodeInput.focus();
       return;
     }
 
     if (!playerName) {
-      alert("プレイヤー名を入力してください。");
+      alert("Please enter a player name.");
       playerNameInput.focus();
       return;
     }
@@ -131,8 +131,8 @@ function createGameCard(game, baseUrl) {
   actions.appendChild(roomButton);
 
   const roomSupportText = meta.supportsRooms
-    ? `ルーム対応 / 最大 ${meta.maxPlayers} 人`
-    : "ルーム非対応";
+    ? `Room support / up to ${meta.maxPlayers} players`
+    : "No room support";
 
   card.innerHTML = `
     <img class="game-icon" src="${iconUrl}" alt="${meta.title} icon">
@@ -172,7 +172,7 @@ async function loadGames() {
   }
 
   if (loadedCount === 0) {
-    showMessage("ゲームを読み込めませんでした。");
+    showMessage("Could not load games.");
   }
 }
 
