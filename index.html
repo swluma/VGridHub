@@ -9,8 +9,38 @@
 </head>
 <body>
   <main class="page">
-    <h1>Games</h1>
-    <div id="gamesList" class="games-list"></div>
+    <header class="page-header">
+      <h1>Games</h1>
+      <p class="page-description">ゲームを選び、ローカルプレイまたはルーム経由で開始します。</p>
+    </header>
+
+    <section class="controls">
+      <div class="field">
+        <label for="playerName">プレイヤー名</label>
+        <input id="playerName" type="text" maxlength="24" placeholder="名前を入力" />
+      </div>
+
+      <div class="field">
+        <label for="playMode">プレイ方法</label>
+        <select id="playMode">
+          <option value="local">ローカルプレイ</option>
+          <option value="host">ルームを作成</option>
+          <option value="join">ルームに参加</option>
+        </select>
+      </div>
+
+      <div class="field room-field">
+        <label for="roomCode">ルームコード</label>
+        <div class="room-input-row">
+          <input id="roomCode" type="text" maxlength="12" placeholder="例: ABCD12" />
+          <button id="generateRoomCodeBtn" type="button">生成</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="gamesList" class="games-list">
+      <div class="message">ゲームを読み込み中です。</div>
+    </section>
   </main>
 
   <script src="script.js"></script>

@@ -10,14 +10,89 @@ body {
 }
 
 .page {
-  max-width: 900px;
+  max-width: 980px;
   margin: 0 auto;
   padding: 24px 16px 40px;
 }
 
+.page-header {
+  margin-bottom: 20px;
+}
+
 h1 {
-  margin: 0 0 20px;
+  margin: 0 0 8px;
   font-size: 28px;
+}
+
+.page-description {
+  margin: 0;
+  color: #666;
+}
+
+.controls {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #fff;
+  border: 1px solid #ddd;
+  border-radius: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field label {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.field input,
+.field select,
+.field button {
+  font: inherit;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #cfcfcf;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.room-input-row {
+  display: flex;
+  gap: 8px;
+}
+
+.room-input-row input {
+  flex: 1;
+}
+
+.room-input-row button,
+.action-button {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: #222;
+  color: #fff;
+  cursor: pointer;
+}
+
+.room-input-row button:hover,
+.action-button:hover {
+  background: #444;
+}
+
+.room-field.hidden {
+  display: none;
 }
 
 .games-list {
@@ -36,8 +111,8 @@ h1 {
 }
 
 .game-icon {
-  width: 72px;
-  height: 72px;
+  width: 80px;
+  height: 80px;
   object-fit: cover;
   border-radius: 12px;
   background: #e5e5e5;
@@ -50,27 +125,35 @@ h1 {
 }
 
 .game-title {
-  margin: 0 0 8px;
+  margin: 0 0 6px;
   font-size: 20px;
 }
 
 .game-description {
-  margin: 0 0 12px;
+  margin: 0 0 10px;
   color: #555;
   line-height: 1.5;
 }
 
-.game-link {
-  display: inline-block;
-  padding: 8px 12px;
-  background: #222;
-  color: #fff;
-  text-decoration: none;
-  border-radius: 8px;
+.game-meta {
+  margin: 0 0 12px;
+  color: #666;
+  font-size: 14px;
 }
 
-.game-link:hover {
-  background: #444;
+.card-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.action-button.secondary {
+  background: #e8e8e8;
+  color: #222;
+}
+
+.action-button.secondary:hover {
+  background: #d8d8d8;
 }
 
 .message {
@@ -81,14 +164,18 @@ h1 {
   color: #555;
 }
 
-@media (max-width: 600px) {
+@media (max-width: 760px) {
+  .controls {
+    grid-template-columns: 1fr;
+  }
+
   .game-card {
     align-items: flex-start;
   }
 
   .game-icon {
-    width: 60px;
-    height: 60px;
+    width: 64px;
+    height: 64px;
   }
 
   .game-title {
