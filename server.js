@@ -28,6 +28,27 @@ const SERVER_ROOM_EVENTS = Object.freeze({
   ERROR: "error",
   ROOM_CLOSED: "room_closed"
 });
+const CLIENT_EVENT_ALIASES = Object.freeze({
+  joinroom: CLIENT_ROOM_EVENTS.JOIN_ROOM,
+  join_room: CLIENT_ROOM_EVENTS.JOIN_ROOM,
+  "join-room": CLIENT_ROOM_EVENTS.JOIN_ROOM,
+  leaveroom: CLIENT_ROOM_EVENTS.LEAVE_ROOM,
+  leave_room: CLIENT_ROOM_EVENTS.LEAVE_ROOM,
+  "leave-room": CLIENT_ROOM_EVENTS.LEAVE_ROOM,
+  playerready: CLIENT_ROOM_EVENTS.PLAYER_READY,
+  player_ready: CLIENT_ROOM_EVENTS.PLAYER_READY,
+  "player-ready": CLIENT_ROOM_EVENTS.PLAYER_READY,
+  startgame: CLIENT_ROOM_EVENTS.START_GAME,
+  start_game: CLIENT_ROOM_EVENTS.START_GAME,
+  "start-game": CLIENT_ROOM_EVENTS.START_GAME,
+  gameaction: CLIENT_ROOM_EVENTS.GAME_ACTION,
+  game_action: CLIENT_ROOM_EVENTS.GAME_ACTION,
+  "game-action": CLIENT_ROOM_EVENTS.GAME_ACTION,
+  syncrequest: CLIENT_ROOM_EVENTS.SYNC_REQUEST,
+  sync_request: CLIENT_ROOM_EVENTS.SYNC_REQUEST,
+  "sync-request": CLIENT_ROOM_EVENTS.SYNC_REQUEST,
+  heartbeat: CLIENT_ROOM_EVENTS.HEARTBEAT
+});
 
 const rooms = new Map();
 
@@ -101,6 +122,39 @@ function normalizeRoomCode(value) {
 
 function normalizePlayerName(value) {
   return String(value || "").replace(/\s+/g, " ").trim().slice(0, 24);
+}
+
+function normalizeEventName(value) {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+
+  const compact = raw
+    .replace(/([a-z0-9])([A-Z])/g, "$1_$2")
+    .replace(/[\s-]+/g, "_")
+    .toLowerCase();
+
+  return CLIENT_EVENT_ALIASES[compact] || compact;
+}
+
+function normalizeIncomingMessage(message) {
+  if (!message || typeof message !== "object") {
+    return null;
+  }
+
+  const type = normalizeEventName(
+    message.type
+    || message.event
+    || message.kind
+    || message.action
+    || message.op
+  );
+
+  return {
+    type,
+    payload: message.payload ?? message.data ?? message.body ?? {}
+  };
 }
 
 function getPlayerBySocket(socket) {
@@ -406,7 +460,17 @@ wss.on("connection", (socket) => {
       return;
     }
 
-    const { type, payload } = message || {};
+    const normalizedMessage = normalizeIncomingMessage(message);
+    if (!normalizedMessage) {
+      sendRoomError(socket, "BAD_MESSAGE", "Received invalid message payload.");
+      return;
+    }
+
+    const { type, payload } = normalizedMessage;
+    if (!type) {
+      return;
+    }
+
     switch (type) {
       case CLIENT_ROOM_EVENTS.JOIN_ROOM:
         joinRoom(socket, payload);
