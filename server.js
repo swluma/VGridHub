@@ -10,6 +10,7 @@ const ROOM_CODE_PATTERN = /^[A-Z0-9]{4,12}$/;
 const CLIENT_ROOM_EVENTS = Object.freeze({
   JOIN_ROOM: "join_room",
   LEAVE_ROOM: "leave_room",
+  UPDATE_SETTINGS: "update_settings",
   PLAYER_READY: "player_ready",
   START_GAME: "start_game",
   GAME_ACTION: "game_action",
@@ -35,6 +36,9 @@ const CLIENT_EVENT_ALIASES = Object.freeze({
   leaveroom: CLIENT_ROOM_EVENTS.LEAVE_ROOM,
   leave_room: CLIENT_ROOM_EVENTS.LEAVE_ROOM,
   "leave-room": CLIENT_ROOM_EVENTS.LEAVE_ROOM,
+  updatesettings: CLIENT_ROOM_EVENTS.UPDATE_SETTINGS,
+  update_settings: CLIENT_ROOM_EVENTS.UPDATE_SETTINGS,
+  "update-settings": CLIENT_ROOM_EVENTS.UPDATE_SETTINGS,
   playerready: CLIENT_ROOM_EVENTS.PLAYER_READY,
   player_ready: CLIENT_ROOM_EVENTS.PLAYER_READY,
   "player-ready": CLIENT_ROOM_EVENTS.PLAYER_READY,
@@ -90,13 +94,28 @@ function clonePlayer(player) {
   };
 }
 
+function normalizeRoomSettings(value) {
+  const source = value && typeof value === "object" ? value : {};
+  const turnSeconds = Number(source.turnSeconds);
+  return {
+    turnSeconds: Number.isFinite(turnSeconds) ? Math.max(15, Math.min(180, Math.round(turnSeconds))) : 60,
+    timerEnabled: !!source.timerEnabled,
+    extraShotOnHit: source.extraShotOnHit !== false
+  };
+}
+
 function createRoomSnapshot(room) {
   return {
     roomCode: room.roomCode,
+    gameId: room.gameId,
     phase: room.phase,
     hostId: room.hostId,
+    maxPlayers: MAX_PLAYERS_PER_ROOM,
     players: room.players.map(clonePlayer),
-    startedAt: room.startedAt
+    startedAt: room.startedAt,
+    settings: normalizeRoomSettings(room.settings),
+    gameStarted: room.phase === "playing",
+    lastAction: room.lastAction || null
   };
 }
 
@@ -175,6 +194,15 @@ function closeRoom(room, message) {
   rooms.delete(room.roomCode);
 }
 
+function resetRoomMatchState(room) {
+  room.phase = "waiting";
+  room.startedAt = null;
+  room.lastAction = null;
+  room.players.forEach((player) => {
+    player.ready = player.id === room.hostId;
+  });
+}
+
 function removePlayerFromRoom(room, playerId) {
   const index = room.players.findIndex((player) => player.id === playerId);
   if (index === -1) {
@@ -197,9 +225,7 @@ function removePlayerFromRoom(room, playerId) {
     return;
   }
 
-  if (room.phase === "playing") {
-    room.phase = "waiting";
-  }
+  resetRoomMatchState(room);
 
   broadcastRoom(room, SERVER_ROOM_EVENTS.PLAYER_LEFT, {
     roomCode: room.roomCode,
@@ -237,10 +263,16 @@ function joinRoom(socket, payload) {
       phase: "waiting",
       hostId: playerId,
       startedAt: null,
+      settings: normalizeRoomSettings(payload?.settings),
       players: [],
       lastAction: null
     };
     rooms.set(roomCode, room);
+  }
+
+  if (room.gameId && String(payload?.gameId || "") !== room.gameId) {
+    sendRoomError(socket, "WRONG_GAME", "This room is for a different game.");
+    return;
   }
 
   const existingPlayer = room.players.find((player) => player.id === playerId);
@@ -288,6 +320,24 @@ function joinRoom(socket, payload) {
       ready: room.players.find((player) => player.id === playerId)?.ready || false
     }
   });
+  broadcastRoomState(room);
+}
+
+function handleUpdateSettings(socket, payload) {
+  const match = getPlayerBySocket(socket);
+  if (!match) {
+    sendRoomError(socket, "NOT_IN_ROOM", "Join a room before updating settings.");
+    return;
+  }
+
+  const { room, player } = match;
+  if (player.id !== room.hostId) {
+    sendRoomError(socket, "HOST_ONLY", "Only the host can change room settings.");
+    return;
+  }
+
+  room.settings = normalizeRoomSettings(payload?.settings);
+  room.lastAction = null;
   broadcastRoomState(room);
 }
 
@@ -485,6 +535,9 @@ wss.on("connection", (socket) => {
       }
       case CLIENT_ROOM_EVENTS.PLAYER_READY:
         handlePlayerReady(socket, payload);
+        break;
+      case CLIENT_ROOM_EVENTS.UPDATE_SETTINGS:
+        handleUpdateSettings(socket, payload);
         break;
       case CLIENT_ROOM_EVENTS.START_GAME:
         handleStartGame(socket, payload);
