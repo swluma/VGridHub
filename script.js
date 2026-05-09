@@ -1,7 +1,8 @@
 const gameSites = [
   "https://swluma.github.io/RiverBed",
   "https://swluma.github.io/BuildDesk/",
-  "https://swluma.github.io/BlueBird/"
+  "https://swluma.github.io/BlueBird/",
+  "https://swluma.github.io/TileBoard/"
 ];
 
 const HUB_SERVER_URL = "https://vgridhub.onrender.com";
