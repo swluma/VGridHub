@@ -75,11 +75,13 @@ h1 {
 
 .room-input-row {
   display: flex;
+  flex-wrap: wrap;
   gap: 8px;
 }
 
 .room-input-row input {
   flex: 1;
+  min-width: 180px;
 }
 
 .room-input-row button,
@@ -90,6 +92,7 @@ h1 {
   background: #222;
   color: #fff;
   cursor: pointer;
+  flex-shrink: 0;
 }
 
 .room-input-row button:hover,

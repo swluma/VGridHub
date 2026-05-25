@@ -22,6 +22,8 @@ const playModeSelect = document.getElementById("playMode");
 const roomCodeInput = document.getElementById("roomCode");
 const roomField = document.querySelector(".room-field");
 const generateRoomCodeBtn = document.getElementById("generateRoomCodeBtn");
+const enterRoomBtn = document.getElementById("enterRoomBtn");
+const loadedGames = [];
 
 function normalizeRoomCode(value) {
   return value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 12);
@@ -38,6 +40,9 @@ function generateRoomCode(length = 6) {
 
 function updateRoomFieldVisibility() {
   roomField.classList.remove("hidden");
+  const isJoinMode = playModeSelect.value === "join";
+  generateRoomCodeBtn.hidden = isJoinMode;
+  enterRoomBtn.hidden = !isJoinMode;
 
   if (playModeSelect.value === "host" && !roomCodeInput.value.trim()) {
     roomCodeInput.value = generateRoomCode();
@@ -64,6 +69,29 @@ function buildGameUrl(baseUrl, mode, roomCode, playerName) {
   }
 
   return url.toString();
+}
+
+function getGameId(game, baseUrl) {
+  return String(game.gameId || game.id || game.slug || game.title || baseUrl).trim();
+}
+
+function findLoadedGameById(gameId) {
+  const normalizedGameId = String(gameId || "").trim().toLowerCase();
+  if (!normalizedGameId) {
+    return null;
+  }
+
+  return loadedGames.find(({ game, baseUrl }) => {
+    const candidates = [
+      game.gameId,
+      game.id,
+      game.slug,
+      game.title,
+      baseUrl
+    ];
+
+    return candidates.some((candidate) => String(candidate || "").trim().toLowerCase() === normalizedGameId);
+  }) || null;
 }
 
 function createActionButton(text, onClick, secondary = false) {
@@ -147,6 +175,57 @@ function createGameCard(game, baseUrl) {
   return card;
 }
 
+async function enterRoomByCode() {
+  const playerName = playerNameInput.value.trim();
+  const roomCode = normalizeRoomCode(roomCodeInput.value);
+
+  if (!roomCode) {
+    alert("Please enter a room code.");
+    roomCodeInput.focus();
+    return;
+  }
+
+  if (!playerName) {
+    alert("Please enter a player name.");
+    playerNameInput.focus();
+    return;
+  }
+
+  enterRoomBtn.disabled = true;
+  enterRoomBtn.textContent = "Searching...";
+
+  try {
+    const response = await fetch(`${HUB_SERVER_URL}/api/rooms/${encodeURIComponent(roomCode)}`, {
+      cache: "no-store"
+    });
+
+    if (response.status === 404) {
+      alert("No room was found with that code.");
+      return;
+    }
+
+    if (!response.ok) {
+      throw new Error(`Room lookup failed with status ${response.status}`);
+    }
+
+    const { room } = await response.json();
+    const match = findLoadedGameById(room?.gameId);
+
+    if (!match) {
+      alert("Room found, but this hub could not identify which game it belongs to.");
+      return;
+    }
+
+    window.location.href = buildGameUrl(match.baseUrl, "join", roomCode, playerName);
+  } catch (error) {
+    console.error(error);
+    alert("Could not search for that room right now.");
+  } finally {
+    enterRoomBtn.disabled = false;
+    enterRoomBtn.textContent = "Enter Room";
+  }
+}
+
 async function fetchGameMeta(baseUrl) {
   const response = await fetch(`${baseUrl}/game.json`, { cache: "no-store" });
   if (!response.ok) {
@@ -157,11 +236,14 @@ async function fetchGameMeta(baseUrl) {
 
 async function loadGames() {
   gamesList.innerHTML = "";
+  loadedGames.length = 0;
   let loadedCount = 0;
 
   for (const baseUrl of gameSites) {
     try {
       const game = await fetchGameMeta(baseUrl);
+      game.gameId = getGameId(game, baseUrl);
+      loadedGames.push({ game, baseUrl });
       const card = createGameCard(game, baseUrl);
       gamesList.appendChild(card);
       loadedCount += 1;
@@ -182,6 +264,7 @@ roomCodeInput.addEventListener("input", () => {
 generateRoomCodeBtn.addEventListener("click", () => {
   roomCodeInput.value = generateRoomCode();
 });
+enterRoomBtn.addEventListener("click", enterRoomByCode);
 
 updateRoomFieldVisibility();
 loadGames();

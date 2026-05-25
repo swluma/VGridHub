@@ -79,6 +79,13 @@ function sendResponse(res, statusCode, headers, body) {
   res.end(body);
 }
 
+function sendJsonResponse(res, statusCode, body) {
+  sendResponse(res, statusCode, {
+    "Access-Control-Allow-Origin": "*",
+    "Content-Type": "application/json; charset=utf-8"
+  }, JSON.stringify(body));
+}
+
 function sendSocketMessage(socket, type, payload) {
   if (socket.readyState !== WebSocket.OPEN) {
     return;
@@ -474,6 +481,24 @@ const server = http.createServer((req, res) => {
 
   if (requestUrl.pathname === "/healthz") {
     sendResponse(res, 200, { "Content-Type": "application/json; charset=utf-8" }, JSON.stringify({ ok: true }));
+    return;
+  }
+
+  const roomLookupMatch = requestUrl.pathname.match(/^\/api\/rooms\/([A-Za-z0-9]{1,12})$/);
+  if (roomLookupMatch) {
+    const roomCode = normalizeRoomCode(roomLookupMatch[1]);
+    if (!ROOM_CODE_PATTERN.test(roomCode)) {
+      sendJsonResponse(res, 400, { error: "INVALID_ROOM_CODE" });
+      return;
+    }
+
+    const room = rooms.get(roomCode);
+    if (!room) {
+      sendJsonResponse(res, 404, { error: "ROOM_NOT_FOUND" });
+      return;
+    }
+
+    sendJsonResponse(res, 200, { room: createRoomSnapshot(room) });
     return;
   }
 
