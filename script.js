@@ -41,8 +41,11 @@ function generateRoomCode(length = 6) {
 function updateRoomFieldVisibility() {
   roomField.classList.remove("hidden");
   const isJoinMode = playModeSelect.value === "join";
+
   generateRoomCodeBtn.hidden = isJoinMode;
   enterRoomBtn.hidden = !isJoinMode;
+  enterRoomBtn.disabled = false;
+  enterRoomBtn.textContent = "Enter Room";
 
   if (playModeSelect.value === "host" && !roomCodeInput.value.trim()) {
     roomCodeInput.value = generateRoomCode();
@@ -290,6 +293,14 @@ generateRoomCodeBtn.addEventListener("click", () => {
   roomCodeInput.value = generateRoomCode();
 });
 enterRoomBtn.addEventListener("click", enterRoomByCode);
+window.addEventListener("pageshow", updateRoomFieldVisibility);
+window.addEventListener("focus", updateRoomFieldVisibility);
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden) {
+    updateRoomFieldVisibility();
+  }
+});
 
 updateRoomFieldVisibility();
+window.setTimeout(updateRoomFieldVisibility, 0);
 loadGames();
