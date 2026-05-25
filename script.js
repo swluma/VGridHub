@@ -75,8 +75,20 @@ function getGameId(game, baseUrl) {
   return String(game.gameId || game.id || game.slug || game.title || baseUrl).trim();
 }
 
+function getBaseUrlSlug(baseUrl) {
+  try {
+    return new URL(baseUrl).pathname.split("/").filter(Boolean).pop() || "";
+  } catch {
+    return "";
+  }
+}
+
+function normalizeGameKey(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+}
+
 function findLoadedGameById(gameId) {
-  const normalizedGameId = String(gameId || "").trim().toLowerCase();
+  const normalizedGameId = normalizeGameKey(gameId);
   if (!normalizedGameId) {
     return null;
   }
@@ -87,10 +99,15 @@ function findLoadedGameById(gameId) {
       game.id,
       game.slug,
       game.title,
-      baseUrl
-    ];
+      baseUrl,
+      getBaseUrlSlug(baseUrl)
+    ].map(normalizeGameKey).filter(Boolean);
 
-    return candidates.some((candidate) => String(candidate || "").trim().toLowerCase() === normalizedGameId);
+    return candidates.some((candidate) => {
+      return candidate === normalizedGameId
+        || candidate.includes(normalizedGameId)
+        || normalizedGameId.includes(candidate);
+    });
   }) || null;
 }
 
@@ -209,10 +226,10 @@ async function enterRoomByCode() {
     }
 
     const { room } = await response.json();
-    const match = findLoadedGameById(room?.gameId);
+    const match = findLoadedGameById(room?.gameId || room?.gameUrl || room?.url);
 
     if (!match) {
-      alert("Room found, but this hub could not identify which game it belongs to.");
+      alert(`Room found for "${room?.gameId || "unknown game"}", but this hub could not open that game automatically.`);
       return;
     }
 
