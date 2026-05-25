@@ -53,7 +53,7 @@ function showMessage(text) {
   gamesList.innerHTML = `<div class="message">${text}</div>`;
 }
 
-function buildGameUrl(baseUrl, mode, roomCode, playerName) {
+function buildGameUrl(baseUrl, mode, roomCode, playerName, gameId = "") {
   const url = new URL(baseUrl + "/");
   url.searchParams.set("hub", "1");
   url.searchParams.set("mode", mode);
@@ -66,6 +66,10 @@ function buildGameUrl(baseUrl, mode, roomCode, playerName) {
 
   if (mode === "host" || mode === "join") {
     url.searchParams.set("room", roomCode);
+  }
+
+  if (gameId) {
+    url.searchParams.set("gameId", gameId);
   }
 
   return url.toString();
@@ -111,6 +115,10 @@ function findLoadedGameById(gameId) {
   }) || null;
 }
 
+function getRoomFallbackGame() {
+  return loadedGames.find(({ game }) => game.supportsRooms !== false) || loadedGames[0] || null;
+}
+
 function createActionButton(text, onClick, secondary = false) {
   const button = document.createElement("button");
   button.type = "button";
@@ -135,7 +143,7 @@ function createGameCard(game, baseUrl) {
   actions.className = "card-actions";
 
   const localButton = createActionButton("Open in Local Mode", () => {
-    window.location.href = buildGameUrl(baseUrl, "local", "", playerNameInput.value.trim());
+    window.location.href = buildGameUrl(baseUrl, "local", "", playerNameInput.value.trim(), meta.gameId);
   }, true);
 
   const roomButton = createActionButton("Open with Selected Mode", () => {
@@ -165,7 +173,7 @@ function createGameCard(game, baseUrl) {
       return;
     }
 
-    window.location.href = buildGameUrl(baseUrl, mode, roomCode, playerName);
+    window.location.href = buildGameUrl(baseUrl, mode, roomCode, playerName, meta.gameId);
   });
 
   if (meta.supportsLocal) {
@@ -226,14 +234,14 @@ async function enterRoomByCode() {
     }
 
     const { room } = await response.json();
-    const match = findLoadedGameById(room?.gameId || room?.gameUrl || room?.url);
+    const match = findLoadedGameById(room?.gameId || room?.gameUrl || room?.url) || getRoomFallbackGame();
 
-    if (!match) {
-      alert(`Room found for "${room?.gameId || "unknown game"}", but this hub could not open that game automatically.`);
+    if (match) {
+      window.location.href = buildGameUrl(match.baseUrl, "join", roomCode, playerName, match.game.gameId);
       return;
     }
 
-    window.location.href = buildGameUrl(match.baseUrl, "join", roomCode, playerName);
+    alert("Room found, but no room-capable games are loaded yet.");
   } catch (error) {
     console.error(error);
     alert("Could not search for that room right now.");
