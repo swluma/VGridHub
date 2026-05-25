@@ -37,15 +37,10 @@ function generateRoomCode(length = 6) {
 }
 
 function updateRoomFieldVisibility() {
-  const needsRoom = playModeSelect.value === "host" || playModeSelect.value === "join";
-  roomField.classList.toggle("hidden", !needsRoom);
+  roomField.classList.remove("hidden");
 
   if (playModeSelect.value === "host" && !roomCodeInput.value.trim()) {
     roomCodeInput.value = generateRoomCode();
-  }
-
-  if (!needsRoom) {
-    roomCodeInput.value = "";
   }
 }
 
